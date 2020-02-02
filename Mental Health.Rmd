@@ -1145,7 +1145,6 @@ The main advantage of a neural network model is that it can efficiently model di
 
 ```{r}
 library(neuralnet)
-
 ## Do not scale data; categ variables turned into numeric. Not a wide range
 nn = neuralnet(treatment ~ ., data = trainNum, hidden = 3, 
                act.fct = "logistic", linear.output = FALSE)
@@ -1228,13 +1227,11 @@ ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, index = c
 tree_cv <- train(x = train[, -treatment_index], y = train[, treatment_index],
                  method = "rpart", tuneLength = 30, trControl = ctrl)
 
-
 ##Checking accurcay
 plot(tree_cv)
 
 ###Cross validate using test data
 test_tree = predict(tree_cv$finalModel, newdata = test,type = "class")
-
 confusionMatrix(test_tree, test$Treatment)
 ```
 
@@ -1248,6 +1245,15 @@ The lowest misclassification rate for KNN was for K=8 with a rate of 0.32487 for
 ```{r}
 pred = predict(knn, testNum[,-treatment_index])
 confusionMatrix(pred, testNum$treatment)
+
+trControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+knn_cv <- train(treatment ~ .,
+                method     = "knn",
+                tuneGrid   = expand.grid(k = 1:10),
+                trControl  = trControl,
+                metric     = "Accuracy",
+                data       = survey)
 ```
 
 
@@ -1260,17 +1266,22 @@ confusionMatrix(pred, testNum$treatment)
 
 Unlike the other models, the naive bayes model does not provide us with an ROC analysis. However, we can see the confusion matrix and see that we get a misclassification rate of $0.302$. This is slightly higher than the previous models and suggests that we shouldn’t use the Naive Bayes as the best predictive model for our categorical variable. We also get a higher false negative rate than a false positive rate, which is also less desirable. Overall, the naive bayes is a good first test to understand the data, but not a great model for predictions.
 ```{r}
+library(klaR)
 nb_test <- test[, -treatment_index]
 pred = predict(nb, nb_test) #predict on test set
 
 confusionMatrix(pred, test[, treatment_index]) #confusion matrix to check accuracy of model
+
+
+nb_cv = train(train[,-treatment_index], train[, treatment_index],
+              'nb',trControl = trainControl(method='cv',number = 10))
 ```
 
 
 
 
 ## Boosted Trees
-Below we see that the misclassification error rate (MR) for the model is .256 and the AUC is about .82. We also see the plot of MR against number of layers and see how it decreases slightly after 15 layers.
+Below we see that the misclassification error rate for the model is .256 and the AUC is about .82. We also see the plot of MR against number of layers and see how it decreases slightly after 15 layers.
 
 
 ```{r}
@@ -1287,28 +1298,17 @@ pred = predict(rf, rf_labels) #predict on test set
 
 confusionMatrix(pred, test$treatment) #confusion matrix to check accuracy of model
 
-cv10_1 <- createMultiFolds(train_val1[,5], k = 10, times = 10)
+#Cross validation
+cv_10<- createMultiFolds(train[,treatment_index], k = 10, times = 10)
 
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, index = cv_10)
 
+rf <- train(x = train[,-treatment_index], y = train[treatment_index],
+            method = "rf", tuneLength = 3, ntree = 1000, trControl = ctrl)
 
-# Set up caret's trainControl object per above.
+rf_pred = predict(rf,newdata = test)
 
-ctrl_1 <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
-
-                      index = cv10_1)
-
-
-
-
-
-
-
-set.seed(1234)
-
-rf.5<- train(x = train_val1[,-5], y = train_val1[,5], method = "rf", tuneLength = 3,
-
-              ntree = 1000, trControl =ctrl_1)
-
+confusionMatrix(rf_pred,test$treatment)
 ```
 
 
@@ -1318,11 +1318,27 @@ Below we see the prediction measures for both the training and the test data set
 
 
 ```{r}
-
 nn_pred = compute(nn, testNum)
 nn_prob <- nn_pred$net.result
 
-pred <- ifelse(nn_prob > 0.5, 1, 0)
+cv_error <- NULL
+k = 10
+
+for(i in 1:k){
+    index <- sample(1:nrow(survey),round(0.9*nrow(survey)))
+    
+    nn <- neuralnet(treatment ~ ., data = trainNum, hidden = 3,
+                    act.fct = "logistic", linear.output = FALSE)
+
+    nn_pred <- compute(nn, testNum[,1:23])
+    nn_pred <- nn_pred$net.result*(max(survey$medv)-min(survey$medv))+min(survey$medv)
+    
+    test_cv <- (testNum$medv)*(max(survey$medv)-min(survey$medv))+min(survey$medv)
+    
+    cv_error[i] <- sum((test_cv - nn_pred)^2)/nrow(testNum)
+}
+
+mean(cv_error)
 ```
 
 
