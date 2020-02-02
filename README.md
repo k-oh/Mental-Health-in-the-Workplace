@@ -2,7 +2,9 @@
 Mental Health in the Workplace: What factors are involved in employees seeking treatment?'
 --------
 Import "survey.csv"
+
 Run the R code in "Mental Health.Rmd"
+
 The code can be complied to produce a R Markdown pdf document. 
 
 --------
