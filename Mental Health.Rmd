@@ -2,7 +2,7 @@
 title: 'Mental Health in the Workplace: What factors are involved in employees
   seeking treatment?'
 author: 'Kelly Oh'
-date: "May 12, 2017"
+date: "Started May 12, 2017, Updated in 2020"
 output:
   word_document:
     toc: yes
@@ -36,19 +36,19 @@ The dataset “Survey” contains 25 variables on 1,259 people from the 2014 OSM
     
 ```{r,echo=FALSE}
 # Clear the environment 
-#rm(list=ls())
-#options(stringsAsFactors = F)
+rm(list=ls())
+options(stringsAsFactors = F)
 
 set.seed(1)
 
 #install packages
 library(MASS)
+library(tidyverse)
 library(magrittr)
-library(dplyr)
 library(boot)
 library(tree)
 library(gridExtra)
-library(forcats) #in tidyverse
+#library(forcats) #in tidyverse
 library(glmnet)
 library(ggplot2)
 library(ggmosaic)
@@ -57,8 +57,8 @@ library(e1071)
 
 
 #Set working directory
-#etwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-#getwd()
+getwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+getwd()
 trim <- function (x) gsub("^\\s+|\\s+$", "", x) #function to remove white space
 
 #Function to make bar plot
@@ -71,9 +71,6 @@ makebarPlot <- function(var, titleString) {
         legend.position = "none", #remove legend
         axis.title.x = element_blank()) #remove x-axis label
 }
-
-# DELETE
-#scale_fill_manual(values = c("#D16103", "#52854C", "#4E84C4"))
 
 ```
 ```{r}
@@ -488,7 +485,7 @@ rm(diffResponses, easyResponses)
 
 
 
-**mental_health_consequence**: Do you think that discussing a mental health issue with your employer would have negative consequences? We notice that there are three categories: "maybe", "no", "yes". We notice that we get about the same number of "no" and "maybe" responses, ($38.9\%$) answered "no", while $37.88 \%$ of the respondents answered "maybe". $23.19\%$ of the respondents answered "yes". This shows that either most people think there aren't any strong negative consequences, or people are more wary of explicity saying that there are negatve consequences, due to the high percentage that respond "maybe".
+**mental_health_consequence**: Do you think that discussing a mental health issue with your employer would have negative consequences? We notice that there are three categories: "maybe", "no", "yes". We notice that we get about the same number of "no" and "maybe" responses, ($38.9\%$) answered "no", while $37.88\%$ of the respondents answered "maybe". $23.19\%$ of the respondents answered "yes". This shows that either most people think there aren't any strong negative consequences, or people are more wary of explicity saying that there are negatve consequences, due to the high percentage that respond "maybe".
 
 
 ```{r, fig.width=7, fig.height=3, echo=FALSE}
@@ -517,7 +514,7 @@ phi_bp + scale_x_discrete(limits = answers)
 
 **coworkers**: Would you be willing to discuss a mental health issue with your coworkers?
 
-We notice that there are three categories: "some of them", "no", "yes". We notice that the overwheling majority respond with the answers "some of them". ($20.65\%$) answered "no", while $61.44 \%$ of the respondents answered "some of them". $17.87\%$ of the respondents answered "yes". This shows that 'some of them' is the most prevalant answer here. This makes sense since it is an ambiguous answer and either yes or no respondents could mast their concerns with this answer.
+We notice that there are three categories: "some of them", "no", "yes". We notice that the overwheling majority respond with the answers "some of them". ($20.65\%$) answered "no", while $61.44\%$ of the respondents answered "some of them". $17.87\%$ of the respondents answered "yes". This shows that 'some of them' is the most prevalant answer here. This makes sense since it is an ambiguous answer and either yes or no respondents could mast their concerns with this answer.
 
 
 ```{r, fig.width=7, fig.height=3, echo=FALSE}
@@ -534,7 +531,7 @@ co_bp + scale_x_discrete(limits = answers)
 
 
 **supervisor**: Would you be willing to discuss a mental health issue with your direct supervisor(s)?
-We notice that there are three categories: "some of them", "no", "yes". We notice that ($31.21\%$) answered "no", while $27.79 \%$ of the respondents answered "some of them". The greatest fractionality, $40.98\%$ of the respondents, answered "yes". This shows that 'yes' is the most prevalant answer here.
+We notice that there are three categories: "some of them", "no", "yes". We notice that ($31.21\%$) answered "no", while $27.79\%$ of the respondents answered "some of them". The greatest fractionality, $40.98\%$ of the respondents, answered "yes". This shows that 'yes' is the most prevalant answer here.
 
 
 ```{r, fig.width=7, fig.height=3, echo=FALSE}
@@ -930,6 +927,8 @@ test  <- subset(survey, Test == 1)
 surveyNum <- survey %>% mutate_if(sapply(train, is.factor), as.numeric)
 trainNum  <- train %>% mutate_if(sapply(train, is.factor), as.numeric)
 testNum   <- test %>% mutate_if(sapply(test, is.factor), as.numeric)
+
+treatment_index <- which(names(train) == "treatment")
 ```
 
 ```{r}
@@ -975,11 +974,6 @@ mean(regPred == regObs)
 #Stepwise Log Regression
 stepLogReg <- stepAIC(fullLogReg, trace = FALSE)
 stepLogReg$anova
-
-stepProb <- stepLogReg %>% predict(test, type = "response") #Make predictions
-stepPred <- ifelse(stepProb > 0.5, 1, 0)
-stepObs  <- test$treatment #Test model accuracy - 0.7208122
-mean(stepPred == stepObs)
 ```
 
 &nbsp;
@@ -1009,12 +1003,6 @@ LASSO    <- glmnet(LASSOx, LASSOy, alpha = 1, family = "binomial",
                    lambda = cv.LASSO$lambda.min) #fit LASSO model
 
 coef(LASSO) #Regression coefficients
-
-LASSOx.test <- model.matrix(treatment ~., test)[,-1]
-LASSOprob   <- LASSO %>% predict(newx = LASSOx.test) #Make predictions
-LASSOpred   <- ifelse(LASSOprob > 0.5, 1, 0)
-LASSOobs    <- test$treatment #Test model accuracy - 0.7081218
-mean(LASSOpred == LASSOobs)
 ```
 
 
@@ -1050,7 +1038,7 @@ The first split is based on **family history**. Then the next split is on **care
 ```{r}
 library(tree)
 
-tree = tree(treatment ~ ., data = survey) #full tree
+tree = tree(as.factor(treatment) ~ ., data = train)
 summary(tree)
 
 plot(tree)
@@ -1063,25 +1051,14 @@ text(tree, pretty = 0, cex = 0.6)
 
 The K-Nearest Neighbors (KNN) predicts a response value based on the responses of the k nearest rows. The k nearest rows to a given row are determined by identifying the k smallest Euclidean distances between the predictor values for that row and the predictor values for each of the other rows. For a categorical response, the predicted value is the most frequent response level for the k nearest neighbors. If two or more levels are tied as the most frequent levels, the predicted response is assigned by selecting one of these levels at random. Moreover, each continuous predictor is scaled by its standard deviation. With this scaling, a single predictor with large units will not disproportionately influence the distance calculation. Each categorical predictor -- which are most of our predictors -- is expressed in terms of indicator variables, with one indicator variable representing each level. However, potential drawbacks of the K nearest neighbors method. KNN does not make a prediction formula that is practical for large problems, it does not produce fitted probabilities for categorical responses. 
 
-In JMP, we ran KNN for k=1 to 10 and found that k=8 produced the lowest misclassification rate within the KNN model.
+In another Statistical program called JMP, we ran KNN for k=1 to 35 (35 being the square root of the number of observations) and found that k=8 produced the lowest misclassification rate within the KNN model.
 
 
 ```{r}
 library(class)
-k = round(sqrt(nrow(survey)), 0)
 
 ##run knn function
-#knn_35 <- knn(trainNum, testNum, cl = trainNum$treatment, k = k) #run knn model
- 
-#pred = predict(knn_35, testNum[,-c("treatment")])
-#knn_cm = confusionMatrix(pred, testNum$treatment)
- 
-
-##this function divides the correct predictions by total number of predictions that tell us how accurate teh model is.
- 
-#accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
-#accuracy(tab)
- 
+knn <- knn(trainNum, testNum, cl = trainNum$treatment, k = 8) #run knn model
 ```
 
 &nbsp;
@@ -1095,11 +1072,6 @@ The Naive Bayes computes the conditional probability of each variable occurring.
 ```{r}
 nb = naiveBayes(treatment ~., data = survey) #fit the Naive Bayes model
 nb #model summary
-
-nb_test <- test %>% select(-treatment)
-pred = predict(nb, nb_test) #predict on test set
-
-#confusionMatrix(pred, test$treatment) #confusion matrix to check accuracy of model
 ```
 
 
@@ -1113,10 +1085,6 @@ pred = predict(nb, nb_test) #predict on test set
 
 Boosting is the process of building a large, additive decision tree by fitting a sequence of smaller decision trees, which are called layers. The tree at each layer consists of a small number of splits, typically five or fewer. The tree is fit based on the residuals of the previous layers and the final prediction for an observation is the sum of the predicted residuals for that observation over all the layers. The partition algorithm searches all possible splits of predictors to best predict the response. These splits (or partitions) of the data are done recursively to form a tree of decision rules. The splits continue until the desired fit is reached. The partition algorithm chooses optimum splits from a large number of possible splits. 
 
-For this model, we used an experimental design table. We built the design table as a data table containing values for our tuning parameters. A tuning design table has a column for each option that you want to specify and has one or multiple rows that each represent a single Boosted Tree model design. We create a tuning design table which contains a column for each of the tuning parameters: number of layers, splits per tree, learning rate, minimum size split, row sampling rate, and column sampling rate.  For each row in the table, a Boosted Tree model is created using the specified tuning parameters. The model validation-set summaries report lists the R-Square value for each model. The Boosted Tree report shows the fit statistics for the model with the largest R-Square value. 
-
-
-Below are the tuning parameters for the model selected by JMP’s algorithm, which selects the model with the highest Rsquare. Ideally, JMP would have selected the model with the lowest Misclassification rate (MR). Luckily, the model JMP chose also has a relatively low MR, which we will see in the next section once we have tested the model. 
  
 ```{r}
 library(xgboost)
@@ -1127,15 +1095,14 @@ train_x = trainNum[, names(trainNum) !='treatment']
 test_y = testNum[,'treatment']
 test_x = testNum[, names(testNum) !='treatment']
 
-#xgb matrix format
+#Matrix format
 xgb_train = xgb.DMatrix(data =  as.matrix(train_x), label = train_y )
 xgb_test = xgb.DMatrix(data =  as.matrix(test_x), label = test_y)
 
-# these are the datasets the rmse is evaluated for at each iteration
+#Datasets for each iteration
 watchlist = list(train=xgb_train, test=xgb_test)
 
-# try 1 - off a set of paramaters I know work pretty well for most stuff
-
+#Boosted tree
 bst = xgb.train(data = xgb_train, 
                 max.depth = 8, 
                 eta = 0.3, 
@@ -1164,11 +1131,6 @@ rf <- randomForest(x = train_x, y = train_y,
                    data = survey, importance = TRUE, ntree = 1000)
 rf
 plot(rf) #error significantly reduced at ~85 trees. Then error rate widens at 200.
-
-rf_labels <- test %>% select(-treatment)
-pred = predict(rf, rf_labels) #predict on test set
-
-confusionMatrix(pred, test$treatment) #confusion matrix to check accuracy of model
 ```
 
 
@@ -1189,11 +1151,6 @@ nn = neuralnet(treatment ~ ., data = trainNum, hidden = 3,
                act.fct = "logistic", linear.output = FALSE)
 
 plot(nn)
-
-nn_pred = compute(nn, testNum)
-nn_prob <- nn_pred$net.result
-
-pred <- ifelse(nn_prob > 0.5, 1, 0)
 ```
 
 
@@ -1211,7 +1168,7 @@ Below we will view each method's confusion matrix, showing the number of true ne
 
 In this case, we compared all model's classification rate at a cutoff level of 0.5. For example, if the model predicted a 0.2 probability of an observation seeking treatment, then it was classified as treatment = Yes, while if the model predicted a 0.7 probability of seeking treatment then it was classified as treatment = Yes. Thus, we must acknowledge that the observed misclassification rates would be higher (for each model) if we were to choose a lower probability cutoff (for each model).
 
-For this reason, we also look at the ROC (Receiver Operating Characteristics) curve. It is a popular graphic for assessing overall classification performance. It displays the types of error rates (below, we graph the true positive rate by the false positive rate which are also called the sensitivity and the 1- specificity) for all possible thresholds. The overall performance of a classifier, summarized over all possible thresholds, is given by the area under the ROC curve, the AUC. An ideal ROC curve will hug the top left corner, so the larger the AUC the better the classifier. The maximum AUC is 1. We expect a classifier that performs no better than chance to have an AUC of 0.5. We go ahead and look at how the confusion matrix, misclassification rates, and AUCs compare for our models.
+For this reason, we also look at the ROC (Receiver Operating Characteristics) curve. This was easier to do in JMP - so the code is not included. It is a popular graphic for assessing overall classification performance. It displays the types of error rates (below, we graph the true positive rate by the false positive rate which are also called the sensitivity and the 1- specificity) for all possible thresholds. The overall performance of a classifier, summarized over all possible thresholds, is given by the area under the ROC curve, the AUC. An ideal ROC curve will hug the top left corner, so the larger the AUC the better the classifier. The maximum AUC is 1. We expect a classifier that performs no better than chance to have an AUC of 0.5. We go ahead and look at how the confusion matrix, misclassification rates, and AUCs compare for our models.
 
 Below, we compared the misclassification rate, the ROC curves and their corresponding AUC values. After comparing these results for all the models, we will adjust the probability threshold for the best model to minimize Type II error (which is falsely identifying a person who has not sought treatment as someone who has) at the expense of Type I error (falsely identifying a person who has sought treatment as someone who hasn’t) because it is better to over-check in with people who already sought treatment than to not check in with people who may not have sought treatment. 
 
@@ -1225,6 +1182,12 @@ Below, we compared the misclassification rate, the ROC curves and their correspo
 Now let us consider the power of predictions made by the stepwise general logistic regression. The ROC curve of the test data shows us that we have an area of 0.7929 under the curve. This is a good fit. Considering the confusion matrix of the test column, we see that we have a misclassification rate of $0.28934$, giving us a strong model. We have a slightly higher false positive rate than a false negative, but the model is mostly stable and unbiased towards a certain type error.
 
 
+```{r}
+stepProb <- stepLogReg %>% predict(test, type = "response") #Make predictions
+stepPred <- ifelse(stepProb > 0.5, 1, 0)
+stepObs  <- test$treatment #Test model accuracy - 0.7208122
+mean(stepPred == stepObs)
+```
 
 
 &nbsp;
@@ -1237,6 +1200,13 @@ Looking at the probability threshold= 0.5, the misclassification rate for the te
 
 The confusion matrix shows us that there is a slightly lower misclassification rate of false positives than false negatives, meaning there are more people who we are identifying as seeking treatment when they are actually not.
 
+```{r}
+LASSOx.test <- model.matrix(treatment ~., test)[,-1]
+LASSOprob   <- LASSO %>% predict(newx = LASSOx.test) #Make predictions
+LASSOpred   <- ifelse(LASSOprob > 0.5, 1, 0)
+LASSOobs    <- test$treatment #Test model accuracy - 0.7081218
+mean(LASSOpred == LASSOobs)
+```
 
 
 
@@ -1244,11 +1214,29 @@ The confusion matrix shows us that there is a slightly lower misclassification r
 
 ##Decision Tree
 
-The ROC curve on the test data of the decision tree gives us an area of $0.7806$ under the curve. This is similar to the regression model and suggests a slightly strong model. Furthermore, the confusion matrix of the test data gives us a misclassification rate of $0.284$, which is not the strongest model. However, as per discussion, the decision tree method is a good way to intuitively understand the importance of certain variables, but is not a great model for predictive tasks.
+JMP shows that the ROC curve on the test data of the decision tree gives us an area of $0.7806$ under the curve. This is similar to the regression model and suggests a slightly strong model. Furthermore, the confusion matrix of the test data gives us a misclassification rate of $0.284$, which is not the strongest model. However, as per discussion, the decision tree method is a good way to intuitively understand the importance of certain variables, but is not a great model for predictive tasks.
+
+```{r}
+tree_pred = predict(tree, data = train, type = "class")
+
+confusionMatrix(tree_pred,train$treatment)
+cv_10 <- createMultiFolds(train$treatment, k = 10, times = 10)
+
+#Control
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, index = cv_10)
+##Train the data
+tree_cv <- train(x = train[, -treatment_index], y = train[, treatment_index],
+                 method = "rpart", tuneLength = 30, trControl = ctrl)
 
 
+##Checking accurcay
+plot(tree_cv)
 
+###Cross validate using test data
+test_tree = predict(tree_cv$finalModel, newdata = test,type = "class")
 
+confusionMatrix(test_tree, test$Treatment)
+```
 
 
 &nbsp;
@@ -1257,6 +1245,10 @@ The ROC curve on the test data of the decision tree gives us an area of $0.7806$
 
 The lowest misclassification rate for KNN was for K=8 with a rate of 0.32487 for the test set. KNN does not have a ROC (and thus no AUC value). This is higher than the other models and it also produces a higher false negative rate than a false positive rate.
 
+```{r}
+pred = predict(knn, testNum[,-treatment_index])
+confusionMatrix(pred, testNum$treatment)
+```
 
 
 
@@ -1267,6 +1259,12 @@ The lowest misclassification rate for KNN was for K=8 with a rate of 0.32487 for
 ##Naive Bayes
 
 Unlike the other models, the naive bayes model does not provide us with an ROC analysis. However, we can see the confusion matrix and see that we get a misclassification rate of $0.302$. This is slightly higher than the previous models and suggests that we shouldn’t use the Naive Bayes as the best predictive model for our categorical variable. We also get a higher false negative rate than a false positive rate, which is also less desirable. Overall, the naive bayes is a good first test to understand the data, but not a great model for predictions.
+```{r}
+nb_test <- test[, -treatment_index]
+pred = predict(nb, nb_test) #predict on test set
+
+confusionMatrix(pred, test[, treatment_index]) #confusion matrix to check accuracy of model
+```
 
 
 
@@ -1275,17 +1273,43 @@ Unlike the other models, the naive bayes model does not provide us with an ROC a
 Below we see that the misclassification error rate (MR) for the model is .256 and the AUC is about .82. We also see the plot of MR against number of layers and see how it decreases slightly after 15 layers.
 
 
+```{r}
+```
 
 
-Below are the tuning parameters for model in our experimental design matrix with the lowest misclassification rate, 0.2335:
-
-
-
-However this model did not have the highest R-square, which is how JMP chooses the model from the design matrix. Thus these tuning parameters should have been chosen, given that they produce the model with the lowest MR. Thus, we find another instance in which JMP could improve its platform. We should be able to select which criteria is used to select the best model. In our case, the best criteria should be the lowest Misclassification rate. 
 
 ## Random Forest
 Below we see that the misclassification error rate for the test set is .269 and the AUC corresponding to the ROC curve is .8069.
 
+```{r}
+rf_labels <- test %>% select(-treatment)
+pred = predict(rf, rf_labels) #predict on test set
+
+confusionMatrix(pred, test$treatment) #confusion matrix to check accuracy of model
+
+cv10_1 <- createMultiFolds(train_val1[,5], k = 10, times = 10)
+
+
+
+# Set up caret's trainControl object per above.
+
+ctrl_1 <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
+
+                      index = cv10_1)
+
+
+
+
+
+
+
+set.seed(1234)
+
+rf.5<- train(x = train_val1[,-5], y = train_val1[,5], method = "rf", tuneLength = 3,
+
+              ntree = 1000, trControl =ctrl_1)
+
+```
 
 
 ##Neural Networks
@@ -1293,6 +1317,13 @@ Below we see that the misclassification error rate for the test set is .269 and 
 Below we see the prediction measures for both the training and the test data set. We are most interested in the misclassification error rate and the ROC curve along with its corresponding AUC of the test set. 
 
 
+```{r}
+
+nn_pred = compute(nn, testNum)
+nn_prob <- nn_pred$net.result
+
+pred <- ifelse(nn_prob > 0.5, 1, 0)
+```
 
 
 
