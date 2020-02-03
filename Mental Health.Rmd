@@ -48,7 +48,6 @@ library(magrittr)
 library(boot)
 library(tree)
 library(gridExtra)
-#library(forcats) #in tidyverse
 library(glmnet)
 library(ggplot2)
 library(ggmosaic)
@@ -57,8 +56,8 @@ library(e1071)
 
 
 #Set working directory
-getwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-getwd()
+#getwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#getwd()
 trim <- function (x) gsub("^\\s+|\\s+$", "", x) #function to remove white space
 
 #Function to make bar plot
@@ -914,10 +913,10 @@ survey %<>%
 survey <- survey[,-c(4,8)] #remove state and work_interfere
 survey <- survey[complete.cases(survey),]
 n = nrow(survey)
-train.index = c(sample(1:n, 839))
+train_index = c(sample(1:n, 839))
 #class(train.index)
 survey$Test <- 1
-survey$Test[train.index] <- 0
+survey$Test[train_index] <- 0
 
 train <- subset(survey, Test == 0)
 test  <- subset(survey, Test == 1)
@@ -1177,7 +1176,7 @@ Below, we compared the misclassification rate, the ROC curves and their correspo
 ## Stepwise Regression
 
 
-Now let us consider the power of predictions made by the stepwise general logistic regression. The ROC curve of the test data shows us that we have an area of 0.7929 under the curve. This is a good fit. Considering the confusion matrix of the test column, we see that we have a misclassification rate of $0.28934$, giving us a strong model. We have a slightly higher false positive rate than a false negative, but the model is mostly stable and unbiased towards a certain type error.
+Now let us consider the power of predictions made by the stepwise general logistic regression. The ROC curve of the test data shows us that we have an area of 0.7929 under the curve. This is a good fit. Cross validation in JMP showed a misclassification rate of $0.28934$, giving us a strong model. We have a slightly higher false positive rate than a false negative, but the model is mostly stable and unbiased towards a certain type error.
 
 
 ```{r}
@@ -1204,6 +1203,12 @@ LASSOprob   <- LASSO %>% predict(newx = LASSOx.test) #Make predictions
 LASSOpred   <- ifelse(LASSOprob > 0.5, 1, 0)
 LASSOobs    <- test$treatment #Test model accuracy - 0.7081218
 mean(LASSOpred == LASSOobs)
+
+treatment <- ifelse(test$treatment < mean(test$treatment), 0, 1)
+y   <- factor(treatment, labels = c('Yes', 'No'))
+
+LASSO_cv <- cv.glmnet(x = LASSOx.test, y = y, family = 'binomial', nfolds = 10)
+LASSO_cv$lambda.1se
 ```
 
 
@@ -1212,7 +1217,7 @@ mean(LASSOpred == LASSOobs)
 
 ##Decision Tree
 
-JMP shows that the ROC curve on the test data of the decision tree gives us an area of $0.7806$ under the curve. This is similar to the regression model and suggests a slightly strong model. Furthermore, the confusion matrix of the test data gives us a misclassification rate of $0.284$, which is not the strongest model. However, as per discussion, the decision tree method is a good way to intuitively understand the importance of certain variables, but is not a great model for predictive tasks.
+JMP shows that the ROC curve on the test data of the decision tree gives us an area of $0.7806$ under the curve. This is similar to the regression model and suggests a slightly strong model. However, the misclassification rate of $0.284$, which is not the strongest model. However, as per discussion, the decision tree method is a good way to intuitively understand the importance of certain variables, but is not a great model for predictive tasks.
 
 ```{r}
 tree_pred = predict(tree, data = train, type = "class")
@@ -1239,7 +1244,7 @@ confusionMatrix(test_tree, test$Treatment)
 
 ##K-Nearest Neighbors (KNN)
 
-The lowest misclassification rate for KNN was for K=8 with a rate of 0.32487 for the test set. KNN does not have a ROC (and thus no AUC value). This is higher than the other models and it also produces a higher false negative rate than a false positive rate.
+The lowest misclassification rate for KNN was for K = 8 with a rate of 0.32487 for the test set. KNN does not have a ROC (and thus no AUC value). This is higher than the other models and it also produces a higher false negative rate than a false positive rate.
 
 ```{r}
 pred = predict(knn, testNum[,-treatment_index])
@@ -1263,7 +1268,7 @@ knn_cv <- train(treatment ~ .,
 
 ##Naive Bayes
 
-Unlike the other models, the naive bayes model does not provide us with an ROC analysis. However, we can see the confusion matrix and see that we get a misclassification rate of $0.302$. This is slightly higher than the previous models and suggests that we shouldn’t use the Naive Bayes as the best predictive model for our categorical variable. We also get a higher false negative rate than a false positive rate, which is also less desirable. Overall, the naive bayes is a good first test to understand the data, but not a great model for predictions.
+Unlike the other models, the Naive Bayes model does not provide us with an ROC analysis. However, we can see the confusion matrix and see that we get a misclassification rate of $0.302$ in JMP. This is slightly higher than the previous models and suggests that we shouldn’t use the Naive Bayes as the best predictive model for our categorical variable. We also get a higher false negative rate than a false positive rate, which is also less desirable. Overall, the naive bayes is a good first test to understand the data, but not a great model for predictions.
 ```{r}
 library(klaR)
 nb_test <- test[, -treatment_index]
@@ -1280,16 +1285,13 @@ nb_cv = train(train[,-treatment_index], train[, treatment_index],
 
 
 ## Boosted Trees
-Below we see that the misclassification error rate for the model is .256 and the AUC is about .82. We also see the plot of MR against number of layers and see how it decreases slightly after 15 layers.
+The cross validation process for Boosted Trees, with all of the tuning parameters, is efficiently done in JMP. The the misclassification error rate for the model is .256 and the AUC is about .82. We also see the plot of MR against number of layers and see how it decreases slightly after 15 layers.
 
-
-```{r}
-```
 
 
 
 ## Random Forest
-Below we see that the misclassification error rate for the test set is .269 and the AUC corresponding to the ROC curve is .8069.
+Below we see that the misclassification error rate for the test set is .269 and the AUC corresponding to the ROC curve is .8069 in JMP.
 
 ```{r}
 rf_labels <- test %>% select(-treatment)
@@ -1341,8 +1343,7 @@ mean(cv_error)
 ```
 
 
-
-Our neural networks model resulted in a misclassification rate of .244, the lowest MR of our models. It isn’t surprising that it was the best performing model, given that we used a learning rate of .5, which is relatively high. We understand by selecting such a high learning rate that this model could be an example of overfitting, however we wanted to see how far we could push the accuracy of a model, thus we chose a higher learning rate of .5. Below, we also see the ROC curve; the corresponding AUC is .8150. 
+Our Neural Networks model resulted in a misclassification rate of .244, the lowest MR of our models. It isn’t surprising that it was the best performing model, given that we used a learning rate of .5, which is relatively high. We understand by selecting such a high learning rate that this model could be an example of overfitting, however we wanted to see how far we could push the accuracy of a model, thus we chose a higher learning rate of .5. Below, we also see the ROC curve; the corresponding AUC is .8150. 
 
 
 
@@ -1396,12 +1397,12 @@ Overall, it is recommended to use the Boosted Trees model, as it ultimately perf
 Finally, we adjusted the probability threshold for this Boosted Trees model to minimize Type II error.
 
 For probability threshold for…
-- p> 0.5: 73.4% True Negatives, 26.6% False Negatives, 75.2% True Positives, 24.8% False Negatives
+- p > 0.5: 73.4% True Negatives, 26.6% False Negatives, 75.2% True Positives, 24.8% False Negatives
 
-- p >0.6: 68.5% True Negatives, 31.5% False Negatives, 82.1% True Positives, 17.9% False Negatives
+- p > 0.6: 68.5% True Negatives, 31.5% False Negatives, 82.1% True Positives, 17.9% False Negatives
 
 
-- p> 0.7: 62.3% True Negatives, 37.7% False Negatives, 89.5.% True Positives, 10.5% False Negatives
+- p > 0.7: 62.3% True Negatives, 37.7% False Negatives, 89.5.% True Positives, 10.5% False Negatives
 
 
 
