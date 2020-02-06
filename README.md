@@ -9,8 +9,7 @@ The code can be complied to produce a R Markdown pdf document.
 
 --------
 About the Dataset:
-- 2014 Open Sourcing Mental Health survey. Surveyed employed individuals regarding their attitudes towards various aspects of mental health and the workplace,
-as well as their demographic information and the frequency of mental illness.
+- 2014 Open Sourcing Mental Health survey. Surveyed employed individuals regarding their attitudes towards various aspects of mental health and the workplace, as well as their demographic information and the frequency of mental illness.
 - 1,259 observations.
 - 25 variables (Variable "Timestamp" and "Comments" have been removed due to irrelevancy.)
     - treatment (Have you sought treatment for a mental health condition? Yes or No; Response Variable)
@@ -35,6 +34,6 @@ as well as their demographic information and the frequency of mental illness.
     - coworkers (Would you be willing to discuss a mental health issue with your coworkers? Yes, No, or Some of them)
     - supervisor (Would you be willing to discuss a mental health issue with your direct supervisor(s)? Yes, No, or Some of them)
     - mental_health_interview (Would you bring up a mental health issue with a potential employer in an interview? Yes, No, or Maybe)
-    - phys_health_interview* (Would you bring up a physical health issue with a potential employer in an interview? Yes, No, or Maybe)
+    - phys_health_interview (Would you bring up a physical health issue with a potential employer in an interview? Yes, No, or Maybe)
     - mental_vs_physical (Do you feel that your employer takes mental health as seriously as physical health? Yes, No, or Don’t Know)
     - obs_consequence (Have you heard of or observed negative consequences for coworkers with mental health conditions in your workplace? Yes or No)
